@@ -1,0 +1,5 @@
+diffusers
+matplotlib
+pillow
+torch
+transformers
