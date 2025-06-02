@@ -2,6 +2,8 @@ import inspect
 from typing import Any, Dict, List, Optional, Tuple, Union
 
 import torch
+import torchvision.transforms as T
+from diffusers import UNet2DConditionModel
 from diffusers.image_processor import PipelineImageInput
 from PIL.Image import Image
 from torch import Tensor
@@ -20,6 +22,8 @@ model_path: Dict[str, str] = {
     "1.4": "CompVis/stable-diffusion-v1-4",
     "1.5": "sd-legacy/stable-diffusion-v1-5",
 }
+
+IMG_SIZE = 32 * 8
 
 
 def rescale_noise_cfg(noise_cfg, noise_pred_text, guidance_rescale=0.0):
@@ -129,9 +133,29 @@ class StableDiffusionV1:
         self.device = _load_device(self.pipe.device)
         self.generator = _load_generator(device=self.device)
 
+        # Change U-Net
+        unet_config = dict(self.pipe.unet.config)
+        unet_config.update(
+            {
+                "sample_size": (IMG_SIZE, IMG_SIZE),
+                "in_channels": 3,
+                "out_channels": 3,
+                # "block_out_channels": [
+                #     64,
+                #     128,
+                #     256,
+                #     256,
+                # ],
+            }
+        )
+        self.pipe.unet = UNet2DConditionModel(**unet_config).to(self.device)
+
+        # Change VAE
+        self.pipe.vae = None
+
         self.config = {
-            "height": None,
-            "width": None,
+            "height": IMG_SIZE,
+            "width": IMG_SIZE,
             "lora_scale": None,
             "timesteps": None,
             "num_inference_steps": 50,
@@ -210,16 +234,10 @@ class StableDiffusionV1:
         self,
         latents: Tensor,
     ) -> List[Image]:
-        decoded = self.pipe.vae.decode(
-            latents.to(self.device) / self.pipe.vae.config.scaling_factor,
-            return_dict=False,
-            generator=self.generator,
-        )[0]
-        pil_images = self.pipe.image_processor.postprocess(
-            decoded.detach(),
-            output_type="pil",
-            do_denormalize=[True] * decoded.shape[0],
-        )
+        pil_images = []
+        transform = T.ToPILImage()
+        for latent in latents:
+            pil_images.append(transform(latent))
         return pil_images
 
     def classifier_free_guidance(
@@ -300,8 +318,8 @@ class StableDiffusionV1:
 
     def init(
         self,
-        height: Optional[int] = None,
-        width: Optional[int] = None,
+        height: Optional[int] = IMG_SIZE,
+        width: Optional[int] = IMG_SIZE,
         num_inference_steps: int = 50,
         timesteps: List[int] = None,
         sigmas: List[float] = None,
@@ -536,14 +554,5 @@ class StableDiffusionV1:
 
         # Offload all models
         self.pipe.maybe_free_model_hooks()
-
-        # Rearrange latents and noise predictions
-        x_ts = [x_t for x_t in torch.stack(x_ts, dim=0).transpose(0, 1)]
-        eps_ts = [
-            (eps_t[0], eps_t[1])
-            for eps_t in torch.stack(eps_ts, dim=0)
-            .transpose(0, 1)
-            .chunk(batch_size, dim=0)
-        ]
 
         return images, x_ts, eps_ts
