@@ -1,5 +1,8 @@
 diffusers
+lightning
 matplotlib
 pillow
 torch
+torchvision
 transformers
+tqdm

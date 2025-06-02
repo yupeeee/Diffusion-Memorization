@@ -2,7 +2,7 @@ from . import datasets, generate, pipe, train
 
 __all__ = [
     "datasets",
-    "generate", 
+    "generate",
     "pipe",
     "train",
 ]

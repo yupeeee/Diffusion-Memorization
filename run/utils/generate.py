@@ -97,6 +97,8 @@ class Wrapper(L.LightningModule):
                 noise_pred,
                 os.path.join(self.save_dir, "noise_preds", f"{prompt_no}.pt"),
             )
+        del images, latents, noise_preds
+        torch.cuda.empty_cache()
 
     def on_test_end(self) -> None:
         pass

@@ -539,11 +539,12 @@ class StableDiffusionV1:
 
         # Rearrange latents and noise predictions
         x_ts = [x_t for x_t in torch.stack(x_ts, dim=0).transpose(0, 1)]
+        eps_ts_uncond, eps_ts_cond = (
+            torch.stack(eps_ts, dim=0).transpose(0, 1).chunk(2, dim=0)
+        )
         eps_ts = [
-            (eps_t[0], eps_t[1])
-            for eps_t in torch.stack(eps_ts, dim=0)
-            .transpose(0, 1)
-            .chunk(batch_size, dim=0)
+            (eps_t_uncond, eps_t_cond)
+            for eps_t_uncond, eps_t_cond in zip(eps_ts_uncond, eps_ts_cond)
         ]
 
         return images, x_ts, eps_ts
