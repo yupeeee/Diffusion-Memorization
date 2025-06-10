@@ -4,7 +4,7 @@ import os
 import torch
 import tqdm
 import utils
-from paths import DATASET_DIR, LOG_DIR, DATA_DIR
+from paths import DATA_DIR, DATASET_DIR, LOG_DIR
 
 
 def mse(x, y):
@@ -49,13 +49,17 @@ if __name__ == "__main__":
         "x_0": [],
         "eps": [],
         "eps_uncond": [],
+        "eps_uncond_": [],
         "eps_cond": [],
+        "eps_cond_": [],
     }
     coss = {
         "x_0": [],
         "eps": [],
         "eps_uncond": [],
+        "eps_uncond_": [],
         "eps_cond": [],
+        "eps_cond_": [],
     }
 
     for i in tqdm.trange(
@@ -74,6 +78,12 @@ if __name__ == "__main__":
         epss = (x_ts[:-1] - alphas_cumprod[:-1].sqrt() * x_0s) / (
             1 - alphas_cumprod[:-1]
         ).sqrt()
+        eps_ts_uncond_ = (
+            eps_ts_uncond - x_ts[:-1] / (1 - alphas_cumprod[:-1]).sqrt()
+        ) / alphas_cumprod[:-1].sqrt()
+        eps_ts_cond_ = (
+            eps_ts_cond - x_ts[:-1] / (1 - alphas_cumprod[:-1]).sqrt()
+        ) / alphas_cumprod[:-1].sqrt()
         x_0_preds = (
             x_ts[:-1] - (1 - alphas_cumprod[:-1]).sqrt() * eps_ts
         ) / alphas_cumprod[:-1].sqrt()
@@ -86,17 +96,23 @@ if __name__ == "__main__":
         epss = epss.reshape(args.num_inference_steps, -1)
         eps_ts = eps_ts.reshape(args.num_inference_steps, -1)
         eps_ts_uncond = eps_ts_uncond.reshape(args.num_inference_steps, -1)
+        eps_ts_uncond_ = eps_ts_uncond_.reshape(args.num_inference_steps, -1)
         eps_ts_cond = eps_ts_cond.reshape(args.num_inference_steps, -1)
+        eps_ts_cond_ = eps_ts_cond_.reshape(args.num_inference_steps, -1)
 
         mses["x_0"].append(mse(x_0s, x_0_preds))
         mses["eps"].append(mse(epss, eps_ts))
         mses["eps_uncond"].append(mse(epss, eps_ts_uncond))
+        mses["eps_uncond_"].append(mse(eps_ts_uncond_, x_0s))
         mses["eps_cond"].append(mse(epss, eps_ts_cond))
+        mses["eps_cond_"].append(mse(eps_ts_cond_, x_0s))
 
         coss["x_0"].append(cos(x_0s, x_0_preds))
         coss["eps"].append(cos(epss, eps_ts))
         coss["eps_uncond"].append(cos(epss, eps_ts_uncond))
+        coss["eps_uncond_"].append(cos(eps_ts_uncond_, x_0s))
         coss["eps_cond"].append(cos(epss, eps_ts_cond))
+        coss["eps_cond_"].append(cos(eps_ts_cond_, x_0s))
 
     mses = {k: torch.stack(v, dim=0) for k, v in mses.items()}
     coss = {k: torch.stack(v, dim=0) for k, v in coss.items()}

@@ -1,6 +1,6 @@
 #! /bin/bash
 
-for seed in {2..49}; do
+for seed in {0..49}; do
     echo "Calculating errors for seed $seed"
     python run/error.py \
         --num-inference-steps 50 \
