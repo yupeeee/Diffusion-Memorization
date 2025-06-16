@@ -38,7 +38,11 @@ class Wrapper(L.LightningModule):
             )
 
         self.pipe = pipe
-        self.save_dir = os.path.join(save_dir, f"seed_{seed}")
+        self.save_dir = os.path.join(
+            save_dir,
+            f"step{num_inference_steps}-guid{guidance_scale}",
+            f"seed_{seed}",
+        )
 
         self.config = {
             "num_inference_steps": num_inference_steps,
