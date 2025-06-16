@@ -10,7 +10,7 @@ if __name__ == "__main__":
     args = utils.args.load()
 
     sscd = utils.sscd.SSCD(
-        model_path=SSCD_WEIGHTS_PATH,
+        # model_path=SSCD_WEIGHTS_PATH,
         device=args.device,
     )
 
