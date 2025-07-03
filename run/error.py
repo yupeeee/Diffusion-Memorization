@@ -35,11 +35,8 @@ if __name__ == "__main__":
         verbose=False,
     )
     alphas_cumprod = pipe.alphas_cumprod(args.num_inference_steps)
-    alphas_cumprod = torch.cat(
-        [alphas_cumprod, torch.ones_like(alphas_cumprod[-1:])], dim=0
-    )
-    # Reshape alphas for broadcasting: (T + 1, 1, 1, 1)
-    alphas_cumprod = alphas_cumprod.view(-1, 1, 1, 1)
+    # Reshape alphas for broadcasting: (T, 1, 1, 1)
+    alphas_cumprod = alphas_cumprod.view(args.num_inference_steps, 1, 1, 1)
 
     log_dir = os.path.join(LOG_DIR, "sdv1-memorization", f"seed_{args.seed}")
     save_dir = os.path.join(DATA_DIR, "sdv1-memorization", f"seed_{args.seed}")
@@ -75,21 +72,16 @@ if __name__ == "__main__":
         eps_ts = eps_ts_uncond + args.guidance_scale * (eps_ts_cond - eps_ts_uncond)
 
         x_0s = x_ts[-1].unsqueeze(dim=0).repeat(args.num_inference_steps, 1, 1, 1)
-        epss = (x_ts[:-1] - alphas_cumprod[:-1].sqrt() * x_0s) / (
-            1 - alphas_cumprod[:-1]
-        ).sqrt()
+        epss = (x_ts[:-1] - alphas_cumprod.sqrt() * x_0s) / (1 - alphas_cumprod).sqrt()
         eps_ts_uncond_ = (
-            eps_ts_uncond - x_ts[:-1] / (1 - alphas_cumprod[:-1]).sqrt()
-        ) / alphas_cumprod[:-1].sqrt()
+            eps_ts_uncond - x_ts[:-1] / (1 - alphas_cumprod).sqrt()
+        ) / alphas_cumprod.sqrt()
         eps_ts_cond_ = (
-            eps_ts_cond - x_ts[:-1] / (1 - alphas_cumprod[:-1]).sqrt()
-        ) / alphas_cumprod[:-1].sqrt()
+            eps_ts_cond - x_ts[:-1] / (1 - alphas_cumprod).sqrt()
+        ) / alphas_cumprod.sqrt()
         x_0_preds = (
-            x_ts[:-1] - (1 - alphas_cumprod[:-1]).sqrt() * eps_ts
-        ) / alphas_cumprod[:-1].sqrt()
-        x_0_preds_next = (
-            x_ts[:-1] - (1 - alphas_cumprod[1:]).sqrt() * eps_ts
-        ) / alphas_cumprod[1:].sqrt()
+            x_ts[:-1] - (1 - alphas_cumprod).sqrt() * eps_ts
+        ) / alphas_cumprod.sqrt()
 
         x_0s = x_0s.reshape(args.num_inference_steps, -1)
         x_0_preds = x_0_preds.reshape(args.num_inference_steps, -1)

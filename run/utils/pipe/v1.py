@@ -310,7 +310,7 @@ class StableDiffusionV1:
         cross_attention_kwargs: Optional[Dict[str, Any]] = None,
         guidance_rescale: float = 0.0,
         clip_skip: Optional[int] = None,
-    ) -> None:
+    ) -> "StableDiffusionV1":
         self.config = {}
 
         # 0. Default height and width to unet
@@ -357,6 +357,8 @@ class StableDiffusionV1:
         # 6. Prepare extra step kwargs. TODO: Logic should ideally just be moved out of the pipeline
         extra_step_kwargs = self.pipe.prepare_extra_step_kwargs(self.generator, eta)
         self.config["extra_step_kwargs"] = extra_step_kwargs
+
+        return self
 
     @torch.no_grad()
     def __call__(

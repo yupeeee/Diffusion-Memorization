@@ -16,6 +16,7 @@ def load() -> argparse.Namespace:
     parser.add_argument("--num-workers", type=int, required=False, default=4)
     parser.add_argument("--device", type=str, required=False, default="cuda")
     parser.add_argument("--devices", type=str, required=False, default="auto")
+    parser.add_argument("--plot", action="store_true", default=False)
 
     args = parser.parse_args()
 

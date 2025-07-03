@@ -9,31 +9,6 @@ from paths import FIG_DIR, LOG_DIR
 from torch import Tensor
 
 
-def lstsq(
-    args,
-    x_ts: Tensor,
-) -> Tuple[Tensor, Tensor, Tensor]:
-    T = args.num_inference_steps
-    x_ts = x_ts.reshape(T + 1, -1)  # (T + 1, dim)
-    x_T = x_ts[0].unsqueeze(dim=0).repeat(T, 1)  # (T, dim)
-    x_0 = x_ts[-1].unsqueeze(dim=0).repeat(T, 1)  # (T, dim)
-    X = x_ts[1:]  # (T, dim)
-
-    # X ~ a * x_0 + b * x_T
-    lstsq = torch.linalg.lstsq(
-        torch.stack([x_0, x_T], dim=2),
-        X[..., None],
-    ).solution
-
-    A, B = lstsq[:, 0, 0], lstsq[:, 1, 0]  # (T,)
-
-    X_hat = A[:, None] * x_0[None, :] + B[:, None] * x_T[None, :]
-
-    residuals = (X - X_hat).reshape(T, -1)
-    errs = torch.sqrt(torch.mean(residuals**2, dim=1))
-    return (A, B, errs)
-
-
 if __name__ == "__main__":
     args = utils.args.load()
 
